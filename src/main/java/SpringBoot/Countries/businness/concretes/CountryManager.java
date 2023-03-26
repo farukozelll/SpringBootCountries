@@ -22,27 +22,27 @@ public class CountryManager implements CountryServices {
     public Map<String, Country> countries;
 
     public CountryManager() {
-        loadJson();
+        loadJsonFile();
     }
-    public void loadJson() { // JSON dosyasını okur
+    public void loadJsonFile() { 
         ObjectMapper objectMapper = new ObjectMapper();
         try{
             Map<String, Map<String, Object>> countryMaps = objectMapper.readValue(new File(COUNTRY_JSON), new TypeReference<Map<String, Map<String, Object>>>() {});
             countries = new HashMap<>();
             for (Map.Entry<String, Map<String, Object>> entry : countryMaps.entrySet()) {
-                String countryCode = entry.getKey();// anahtar String kısmı countrycode'a atandı
-                Map<String, Object> countryMap = entry.getValue(); // her bir ülke için bir Country nesnesi oluşturulur ve bu nesneler bir Map<String, Country> nesnesinde saklanır
-                Country country = objectMapper.convertValue(countryMap, Country.class);//Map nesnesindeki özellikleri, Country sınıfındaki alanlarla eşleştirerek yeni bir Country nesnesi oluşturur
-                country.setId(countryCode); //country nesnesinin id alanı countryCode'a ayarlanır
+                String countryCode = entry.getKey();
+                Map<String, Object> countryMap = entry.getValue();
+                Country country = objectMapper.convertValue(countryMap, Country.class);
+                country.setId(countryCode);
                 country.setName((String) countryMap.get("name"));
-                country.setNativeName((String) countryMap.get("native")); //country nesnesinin nativeName  alanı native'e ayarlanır
+                country.setNativeName((String) countryMap.get("native")); /
                 country.setPhone((String) countryMap.get("phone"));
                 country.setContinent((String) countryMap.get("continent"));
                 country.setCapital((String) countryMap.get("capital"));
                 country.setCurrency((String) countryMap.get("currency"));
                 country.setLanguages((List<?>) countryMap.get("languages"));
                 country.setFlag("http://aedemirsen.bilgimeclisi.com/country_flags/" + countryCode + ".svg"); // flag özelliğini ayarla
-                countries.put(countryCode, country);// her bir ülke için oluşturulan country nesnesini countries mapine countryCode key'i ile ekler
+                countries.put(countryCode, country);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -66,7 +66,7 @@ public class CountryManager implements CountryServices {
                 .collect(Collectors.toList());
     }*/
     @Override
-    public List<Country> getCountriesSortedByPhone(boolean ascending) {//Ülke telefon kodlarına göre azalan veya artan sırada tüm ülkeler
+    public List<Country> getCountriesSortedByPhone(boolean ascending) {
         Comparator<Country> comparator = Comparator.comparing(Country::getPhone);
         if (!ascending) {
             comparator = comparator.reversed();
@@ -74,11 +74,11 @@ public class CountryManager implements CountryServices {
         return countries.values().stream().sorted(comparator).collect(Collectors.toList());
     }
     @Override
-    public List<Country> getCountriesByProperties(String currency, String phone, String continent) {//Ülkenin currency, phoneCode ve continent özelliklerine göre filtrelenmiş ülkeler
+    public List<Country> getCountriesByProperties(String currency, String phone, String continent) {
         return countries.values().stream()
-                .filter(c -> currency == null || c.getCurrency().equals(currency))  //currency'e göre filtrelenmiş ülkeler
-                .filter(c -> phone == null || c.getPhone().equals(phone))  // phone'a göre filtrelenmiş ülkeler
-                .filter(c -> continent == null || c.getContinent().equals(continent))  //continent'e göre filtrelenmiş ülkeler
+                .filter(c -> currency == null || c.getCurrency().equals(currency))  
+                .filter(c -> phone == null || c.getPhone().equals(phone))  
+                .filter(c -> continent == null || c.getContinent().equals(continent))  
                 .collect(Collectors.toList());
     }
 }
