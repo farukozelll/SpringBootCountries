@@ -82,7 +82,6 @@ public class Country {
         this.continent = continent;
     }
 
-
     public String getFlag() {
         return this.flag;
     }
