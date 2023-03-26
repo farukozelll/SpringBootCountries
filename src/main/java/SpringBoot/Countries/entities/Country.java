@@ -5,9 +5,9 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class Country {
-    private String id;//primary key
+    private String id;//primary key pk
     private String name;
-    @JsonProperty("native")//Alanlarımızın json içerisinde hangi isimle gözükeceğini belirledim
+    @JsonProperty("native")m
     private String nativeName;
     private String phone;
     private String continent;
