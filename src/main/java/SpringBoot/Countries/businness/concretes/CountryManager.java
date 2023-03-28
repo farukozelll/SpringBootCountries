@@ -50,7 +50,7 @@ public class CountryManager implements CountryServices {
     }
     @Override
     public Map<String, Country> getAllCountries() {
-        return null;
+         return countries;
     }
 
     @Override
