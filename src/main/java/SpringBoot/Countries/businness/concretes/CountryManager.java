@@ -35,7 +35,7 @@ public class CountryManager implements CountryServices {
                 Country country = objectMapper.convertValue(countryMap, Country.class);
                 country.setId(countryCode);
                 country.setName((String) countryMap.get("name"));
-                country.setNativeName((String) countryMap.get("native")); /
+                country.setNativeName((String) countryMap.get("native"));
                 country.setPhone((String) countryMap.get("phone"));
                 country.setContinent((String) countryMap.get("continent"));
                 country.setCapital((String) countryMap.get("capital"));
