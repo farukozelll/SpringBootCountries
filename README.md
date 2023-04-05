@@ -1,4 +1,4 @@
-# Spring Boot RestApi ve Mysql Veritabanı
+# Spring Boot RestApi ve Hibernate
 
 Bu uygulama, dünya ülkelerinin bilgilerini içeren bir veri kaynağından veri toplar ve kullanıcılara bu verileri sunar. Bu uygulama, Java dilinde yazılmıştır ve Spring Framework kullanılarak geliştirilmiştir.
 
@@ -15,9 +15,10 @@ Bu uygulama, dünya ülkelerinin bilgilerini içeren bir veri kaynağından veri
 
 ## Kullanılan Teknolojiler
 - Java Spring Boot
-- Mysql Veritabanı
-- JDBC Connection
-- Postman
+- JPA
+- ORM
+- Hibernate
+- Hibernate Criteria API
 
 ## Kurulum
 1. Depoyu yerel bilgisayarınıza kopyalayın.
