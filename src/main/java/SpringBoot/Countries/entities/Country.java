@@ -6,21 +6,22 @@ import lombok.*;
 
 import javax.persistence.*;
 
-@AllArgsConstructor
+@AllArgsConstructor// Lombok kütüphanesinin bir özelliği olan bu annotation, sınıfın tüm alanları için bir constructor oluşturur. Bu sayede her alan için tek tek constructor tanımlamak gerekmez.
 //@Data
-@NoArgsConstructor
+@NoArgsConstructor//Yine Lombok kütüphanesinin bir özelliği olan bu annotation, parametresiz bir constructor oluşturur.
 @Getter
 @Setter
 @Table(name="countries")
 @Entity
 public class Country {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private String id;//primary key
+    @Id//primary key
+    @GeneratedValue(strategy = GenerationType.IDENTITY)//alanın otomatik olarak artan bir şekilde (auto-increment) değer alacağını belirtir. strategy parametresi ile artan değerlerin nasıl olacağı belirtilir.
+    private String id;
 
-    @Column(name="name")
+    @Column(name="name")// alanın veritabanı tablosunda hangi sütuna karşılık geldiğini belirtir
     private String name;
 
+    @JsonProperty("native")//JSON serileştirme işlemi sırasında bir alanın ismini belirler.
     @Column(name = "native_name")
     private String nativeName;
 
