@@ -11,36 +11,35 @@ import javax.persistence.*;
 @NoArgsConstructor//Yine Lombok kütüphanesinin bir özelliği olan bu annotation, parametresiz bir constructor oluşturur.
 @Getter
 @Setter
-@Table(name="countries")
 @Entity
+@Table(name = "country")
 public class Country {
-    @Id//primary key
-    @GeneratedValue(strategy = GenerationType.IDENTITY)//alanın otomatik olarak artan bir şekilde (auto-increment) değer alacağını belirtir. strategy parametresi ile artan değerlerin nasıl olacağı belirtilir.
+    @Id
+    @Column(name = "id")
     private String id;
-
-    @Column(name="name")// alanın veritabanı tablosunda hangi sütuna karşılık geldiğini belirtir
+    @Column(name = "name")
     private String name;
-
-    @JsonProperty("native")//JSON serileştirme işlemi sırasında bir alanın ismini belirler.
     @Column(name = "native_name")
     private String nativeName;
-
     @Column(name = "phone")
     private String phone;
-
     @Column(name = "continent")
     private String continent;
-
     @Column(name = "capital")
     private String capital;
-
     @Column(name = "currency")
     private String currency;
-
-    @Column(name = "languages")
+    @ElementCollection
+    @CollectionTable(name = "country_languages", joinColumns = @JoinColumn(name = "country_id"))
+    @Column(name = "language")
     private List<String> languages;
-
     @Column(name = "flag")
     private String flag;
 
+    // getter ve setter metodları
+
+    // toString() metodunun oluşturulması
+
 }
+
+

@@ -1,6 +1,7 @@
 package SpringBoot.Countries.webApi.controllers;
 
 import SpringBoot.Countries.businness.CountryService;
+import SpringBoot.Countries.businness.CountryServiceJPA;
 import SpringBoot.Countries.entities.Country;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -19,26 +20,33 @@ public class CountryController {
     @Autowired
     private CountryService countryService;
     @Autowired
+    private CountryServiceJPA countryServicejpa;
+    @Autowired
     public CountryController(CountryService countryService) {
         this.countryService = countryService;
     }
 
-    // countries.json dosyasındaki verileri veritabanına yüklemek için HTTP POST talebi karşılama
-    @PostMapping("/load")
-    public ResponseEntity<String> loadCountriesToDb() {
+    @GetMapping("/api/one-time-insert")
+    public ResponseEntity<String> oneTimeInsert() {
         try {
-            countryService.loadJsonToDb();
-            return ResponseEntity.ok("Countries loaded successfully to database!");
+            List<Country> allCountries = countryService.getAllCountries();
+            if (allCountries.isEmpty()) {
+                countryService.insertCountry();
+                return ResponseEntity.ok("Veriler başarıyla eklendi.");
+            }
+            else {
+                return ResponseEntity.ok("Veritabanı zaten doldurulmuş.");
+            }
         } catch (SQLException e) {
             e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to load countries to database!");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Veritabanı hatası.");
         }
     }
 
     @GetMapping("/all")
 // Tüm ülkeleri getiren endpoint.
     public List<Country> getAllCountries() throws SQLException{
-        return countryService.getAllCountries();
+        return countryServicejpa.getAllCountries();
     }
 
     @GetMapping("/code/{kod}")
@@ -51,7 +59,7 @@ public class CountryController {
 // Telefon kodlarına göre sıralanmış ülkeleri getiren endpoint.
 // ascending parametresi sıralamanın artan veya azalan olacağını belirler.
     public List<Country> getCountriesSortedByPhoneCode(@RequestParam(required = true, defaultValue = "false") boolean ascending) throws SQLException {
-        return countryService.getCountriesSortedByPhone(ascending);
+        return countryService.orderCountriesByPhoneCode(ascending);
     }
 
     @GetMapping("/filter")
