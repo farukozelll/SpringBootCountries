@@ -1,72 +1,268 @@
 package SpringBoot.Countries.businness;
 
-import SpringBoot.Countries.dataAccess.Query;
 import SpringBoot.Countries.entities.Country;
 import SpringBoot.Countries.repository.CountryRepository;
-import SpringBoot.Countries.repository.HibernateUtil;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Selection;
-import org.hibernate.HibernateException;
-import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
-import org.hibernate.cfg.Configuration;
+import jakarta.persistence.*;
 
-import org.hibernate.Session;
+
 import org.hibernate.SessionFactory;
-import org.hibernate.Transaction;
 import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.stereotype.Service;
 
-import javax.persistence.criteria.Root;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.io.File;
 import java.io.IOException;
-import java.sql.*;
 import java.util.*;
 
 @Service
-public class CountryServiceIml implements CountryService  {
-
-
+public class CountryServiceIml implements CountryService {
     @Autowired
     private CountryRepository countryRepository;
-    List<Country> countries = new ArrayList<>();
     private final static String COUNTRY_JSON = "src/main/resources/countries.json";
+    List<Country> countries = new ArrayList<>();
+    @PersistenceContext
+    private EntityManager entityManager; // JPA ile çalışan uygulamalarda veritabanı işlemlerini yönetir
+   public CountryServiceIml(EntityManager entityManager) {
+       this.entityManager = entityManager;
+   }
 
-   /* @Override
-    public List<Country> getAllCountries() throws SQLException {
-        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/countries_db", "root", "12345");
-        try (Statement stmt = connection.createStatement();
-             ResultSet rs = stmt.executeQuery(Query.GET_ALL_COUNTRIES)) {
-            while (rs.next()) {
-                Country country = new Country();
-                country.setId(rs.getString("id"));
-                country.setName(rs.getString("name"));
-                country.setNativeName(rs.getString("native_name"));
-                country.setPhone(rs.getString("phone"));
-                country.setContinent(rs.getString("continent"));
-                country.setCapital(rs.getString("capital"));
-                country.setCurrency(rs.getString("currency"));
-                String languages = rs.getString("languages");
-                country.setLanguages(Arrays.asList(languages.split(",")));
-                country.setFlag(rs.getString("flag"));
-                countries.add(country);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
+     /*** Verilen id değerine göre bir ülke döndürür.
+     *
+     * @param id ülke id'si
+     * @return id değerine göre bulunan ülke*/
+    @Override
+    public Optional<Country> getCountry(String id) {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Country> cq = cb.createQuery(Country.class);
+        Root<Country> root = cq.from(Country.class);
+        cq.select(root).where(cb.equal(root.get("id"), id));
+        TypedQuery<Country> query = entityManager.createQuery(cq);
+        List<Country> results = query.getResultList();
+        if (results.isEmpty()) {
+            return Optional.empty();
+        } else {
+            return Optional.of(results.get(0));
         }
-
-        return countries;
     }
-*/
-   private SessionFactory sessionFactory;
 
-    public CountryServiceIml() {
-        sessionFactory = HibernateUtil.getSessionFactory();
+     /** * Tüm ülkeleri getirir.
+     *
+     * @return tüm ülkelerin listesi*/
+    @Override
+    public List<Country> getAllCountries() {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Country> cq = cb.createQuery(Country.class);
+        Root<Country> root = cq.from(Country.class);
+        cq.select(root);
+        return entityManager.createQuery(cq).getResultList();
     }
     @Override
-    public void insertCountry() {
+    public List<Country> getCountryByName(String name) {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Country> cq = cb.createQuery(Country.class);
+        Root<Country> root = cq.from(Country.class);
+
+        // Ülke adının aranması için kullanılan LIKE operatörü ile arama yapılır
+        cq.where(cb.like(root.get("name"), "%" + name + "%"));
+
+        return entityManager.createQuery(cq).getResultList();
+    }
+    @Override
+    public Optional<Country> getCountryById(String id) {
+        CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Country> criteriaQuery = criteriaBuilder.createQuery(Country.class);
+        Root<Country> root = criteriaQuery.from(Country.class);
+
+        // Verilen ID'ye göre tek bir ülke döndürmek için kullanılır.
+        criteriaQuery.where(criteriaBuilder.equal(root.get("id"), id));
+        TypedQuery<Country> query = entityManager.createQuery(criteriaQuery);
+        List<Country> countries = query.getResultList();
+        return countries.isEmpty() ? Optional.empty() : Optional.of(countries.get(0));
+    }
+    @Override
+    public List<Country> getCountryByPhoneCode(String phoneCode) {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Country> cq = cb.createQuery(Country.class);
+        Root<Country> root = cq.from(Country.class);
+
+        // Ülke telefon koduna göre ülkelerin listesi döndürülür.
+        cq.where(cb.equal(root.get("phone"), phoneCode));
+        TypedQuery<Country> query = entityManager.createQuery(cq);
+        return query.getResultList();
+    }
+     /*** Belirtilen sıralama parametresine göre ülkeleri telefon koduna göre sıralar.
+     *
+     * @param order Sıralama parametresi: "asc" (artan) veya "desc" (azalan)
+     * @return Telefon koduna göre sıralanmış ülke listesi
+     * @throws IllegalArgumentException Geçersiz sıralama parametresi verildiğinde fırlatılır. */
+    @Override
+    public List<Country> orderCountriesByPhoneCode(String order) {
+        CriteriaBuilder builder = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Country> query = builder.createQuery(Country.class);
+        Root<Country> root = query.from(Country.class);
+        if ("asc".equalsIgnoreCase(order)) {
+            query.orderBy(builder.asc(root.get("phone")));
+        }  else if ("desc".equalsIgnoreCase(order)) {
+            query.orderBy(builder.desc(root.get("phone")));
+        }else {
+            throw new IllegalArgumentException("ascending parametresi 'asc' veya 'desc' olmalidir.");
+        }
+        TypedQuery<Country> typedQuery = entityManager.createQuery(query);
+        return typedQuery.getResultList();
+    }
+    @Override
+    public List<Country> getCountriesByProperties(String currency, String phone, String continent) {
+        // CriteriaBuilder ve CriteriaQuery oluşturuluyor
+        CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Country> query = criteriaBuilder.createQuery(Country.class);
+
+        // Root nesnesi oluşturuluyor ve sorgu başlangıç noktası olarak belirtiliyor
+        Root<Country> root = query.from(Country.class);
+
+        // Filtrelemek için Predicate nesneleri oluşturuluyor
+        List<Predicate> predicates = new ArrayList<>();
+
+        // currency filtresi eklendi
+        if (currency != null) {
+            predicates.add(criteriaBuilder.equal(root.get("currency"), currency));
+        }
+        // phone filtresi eklendi
+        if (phone != null) {
+            predicates.add(criteriaBuilder.equal(root.get("phone"), phone));
+        }
+        // continent filtresi eklendi
+        if (continent != null) {
+            predicates.add(criteriaBuilder.equal(root.get("continent"), continent));
+        }
+        // Tüm filtreler ve 'and' bağlacı ile birlikte sorguya ekleniyor
+        if (!predicates.isEmpty()) {
+            query.where(criteriaBuilder.and(predicates.toArray(new Predicate[0])));
+        }
+        // Sorgu sonucu döndürülüyor
+        return entityManager.createQuery(query).getResultList();
+    }
+
+    @Override
+    public Country insertCountry(Country country) throws IOException {
+        country.setId(UUID.randomUUID().toString()); // rastgele bir kimlik
+        return countryRepository.save(country);
+    }
+    @Override
+    public void populateCountries() {
+        if (countryRepository.count() == 0) {
+            ObjectMapper objectMapper = new ObjectMapper();
+            try {
+                Map<String, Map<String, Object>> countryMaps = objectMapper.readValue(new File(COUNTRY_JSON), new TypeReference<Map<String, Map<String, Object>>>() {});
+                for (Map.Entry<String, Map<String, Object>> entry : countryMaps.entrySet()) {
+                    String countryCode = entry.getKey();
+                    Map<String, Object> countryMap = entry.getValue();
+                    Country country = objectMapper.convertValue(countryMap, Country.class);
+                    country.setId(countryCode);
+                    country.setName((String) countryMap.get("name"));
+                    country.setNativeName((String) countryMap.get("native"));
+                    country.setPhone((String) countryMap.get("phone"));
+                    country.setContinent((String) countryMap.get("continent"));
+                    country.setCapital((String) countryMap.get("capital"));
+                    country.setCurrency((String) countryMap.get("currency"));
+                    country.setLanguages(Collections.singletonList(countryMap.get("languages")).toString());
+                    country.setFlag("http://aedemirsen.bilgimeclisi.com/country_flags/" + countryCode + ".svg");
+                    insertCountry(country);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+    /*   @Override
+    public List<Country> getCountriesByProperties(String currency, String phoneCode, String continent) {
+        CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Country> query = criteriaBuilder.createQuery(Country.class);
+        Root<Country> root = query.from(Country.class);
+        List<Predicate> predicates = new ArrayList<>();
+        if (currency != null) {
+            predicates.add(criteriaBuilder.equal(root.get("currency"), currency));
+        }
+        if (phoneCode != null) {
+            predicates.add(criteriaBuilder.equal(root.get("phone"), phoneCode));
+        }
+        if (continent != null) {
+            predicates.add(criteriaBuilder.equal(root.get("continent"), continent));
+        }
+        if (!predicates.isEmpty()) {
+            query.where(criteriaBuilder.and(predicates.toArray(new Predicate[0])));
+        }
+        return entityManager.createQuery(query).getResultList();
+    }*/
+ /*   @Override
+    public Country insertCountry(Country country) {
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        try {
+            // JSON verilerini bir Map nesnesine okuyun.
+            Map<String, Map<String, Object>> countryMaps = objectMapper.readValue(new File(COUNTRY_JSON), new TypeReference<Map<String, Map<String, Object>>>() {});
+
+            // EntityManagerFactory oluşturun
+            EntityManagerFactory entityManagerFactory = Persistence.createEntityManagerFactory("country");
+
+            // EntityManager oluşturun
+            EntityManager entityManager = entityManagerFactory.createEntityManager();
+            EntityTransaction transaction = entityManager.getTransaction();
+
+            try {
+                // Map nesnesindeki her giriş üzerinde döngü yapın ve verileri veritabanına ekleyin.
+                for (Map.Entry<String, Map<String, Object>> entry : countryMaps.entrySet()) {
+                    String countryCode = entry.getKey();
+                    Map<String, Object> countryMap = entry.getValue();
+
+                    // Map nesnesini country nesnesine dönüştürün.
+                    country = objectMapper.convertValue(countryMap, Country.class);
+                    country.setId(countryCode);
+                    country.setName((String) countryMap.get("name"));
+                    country.setNativeName((String) countryMap.get("native"));
+                    country.setPhone((String) countryMap.get("phone"));
+                    country.setContinent((String) countryMap.get("continent"));
+                    country.setCapital((String) countryMap.get("capital"));
+                    country.setCurrency((String) countryMap.get("currency"));
+                    country.setFlag("http://aedemirsen.bilgimeclisi.com/country_flags/" + countryCode + ".svg");
+
+                    // Map nesnesinin "languages" alanını bir String Listesine dönüştürün ve onu Country nesnesinin languages alanı olarak ayarlayın.
+                    TypeReference<List<String>> typeRef = new TypeReference<List<String>>() {};
+                    List<String> languages = objectMapper.readValue(objectMapper.writeValueAsString(countryMap.get("languages")), typeRef);
+                    country.setLanguages(languages.toString());
+
+                    // entityManager.persist() kullanarak veritabanına kaydedin
+                    transaction.begin();
+                    entityManager.persist(country);
+                    transaction.commit();
+                }
+            } catch (Exception e) {
+                // Transaction'ı rollback edin
+                transaction.rollback();
+                throw e;
+            } finally {
+                // EntityManager'ı ve EntityManagerFactory'yi kapatın
+                entityManager.close();
+                entityManagerFactory.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return country;
+    }
+*/
+
+
+/*    @Override
+    public Country insertCountry(Country country) {
         ObjectMapper objectMapper = new ObjectMapper();
 
         try {
@@ -82,193 +278,49 @@ public class CountryServiceIml implements CountryService  {
             Session session = sessionFactory.openSession();
             Transaction transaction = session.beginTransaction();
 
-            // Map nesnesindeki her giriş üzerinde döngü yapın ve verileri veritabanına ekleyin.
-            for (Map.Entry<String, Map<String, Object>> entry : countryMaps.entrySet()) {
-                String countryCode = entry.getKey();
-                Map<String, Object> countryMap = entry.getValue();
+            try {
+                // Map nesnesindeki her giriş üzerinde döngü yapın ve verileri veritabanına ekleyin.
+                for (Map.Entry<String, Map<String, Object>> entry : countryMaps.entrySet()) {
+                    String countryCode = entry.getKey();
+                    Map<String, Object> countryMap = entry.getValue();
 
-                // Map nesnesini country nesnesine dönüştürün.
-                Country country = objectMapper.convertValue(countryMap, Country.class);
-                country.setId(countryCode);
-                country.setName((String) countryMap.get("name"));
-                country.setNativeName((String) countryMap.get("native"));
-                country.setPhone((String) countryMap.get("phone"));
-                country.setContinent((String) countryMap.get("continent"));
-                country.setCapital((String) countryMap.get("capital"));
-                country.setCurrency((String) countryMap.get("currency"));
-                country.setFlag("http://aedemirsen.bilgimeclisi.com/country_flags/" + countryCode + ".svg");
+                    // Map nesnesini country nesnesine dönüştürün.
+                    country = objectMapper.convertValue(countryMap, Country.class);
+                    country.setId(countryCode);
+                    country.setName((String) countryMap.get("name"));
+                    country.setNativeName((String) countryMap.get("native"));
+                    country.setPhone((String) countryMap.get("phone"));
+                    country.setContinent((String) countryMap.get("continent"));
+                    country.setCapital((String) countryMap.get("capital"));
+                    country.setCurrency((String) countryMap.get("currency"));
+                    country.setFlag("http://aedemirsen.bilgimeclisi.com/country_flags/" + countryCode + ".svg");
 
-                // Map nesnesinin "languages" alanını bir String Listesine dönüştürün ve onu Country nesnesinin languages alanı olarak ayarlayın.
-                TypeReference<List<String>> typeRef = new TypeReference<List<String>>() {};
-                List<String> languages = objectMapper.readValue(objectMapper.writeValueAsString(countryMap.get("languages")), typeRef);
-                country.setLanguages(languages);
+                    // Map nesnesinin "languages" alanını bir String Listesine dönüştürün ve onu Country nesnesinin languages alanı olarak ayarlayın.
+                    TypeReference<List<String>> typeRef = new TypeReference<List<String>>() {};
+                    List<String> languages = objectMapper.readValue(objectMapper.writeValueAsString(countryMap.get("languages")), typeRef);
+                    country.setLanguages(languages.toString());
 
-                // session.save() kullanarak veritabanına kaydedin
-                session.save(country);
+                    // session.save() kullanarak veritabanına kaydedin
+                    session.save(country);
+                }
+
+                // Transaction'ı commit edin ve session'ı kapatın
+                transaction.commit();
+            } catch (Exception e) {
+                // Transaction'ı rollback edin ve session'ı kapatın
+                transaction.rollback();
+                throw e;
+            } finally {
+                session.close();
             }
-
-            // Transaction'ı commit edin ve session'ı kapatın
-            transaction.commit();
-            session.close();
 
             // SessionFactory'yi kapatın
             sessionFactory.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
+        return country;
+    }*/
 
-    @Override
-    public List<Country> getAllCountries() {
-           try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-               String hql = Query.GET_ALL_COUNTRIES;
-               Query query = (Query) session.createQuery(hql, Country.class);
-               countries = query.getResultList();
-           } catch (Exception e) {
-               e.printStackTrace();
-           }
-           return countries;
-       }
-
-    public List<Country> getCountries() {
-        return countryRepository.findAll();
-    }
-
-    public List<Country> getCountriesByName(String name) {
-        return countryRepository.findByName(name);
-    }
-    @Override
-    public List<Country> getCountry() {
-        try(Session session = sessionFactory.openSession()) {
-            CriteriaBuilder criteriaBuilder = session.getCriteriaBuilder();
-            CriteriaQuery<Country> criteriaQuery = criteriaBuilder.createQuery(Country.class);
-            Root<Country> root = (Root<Country>) criteriaQuery.from(Country.class);
-            criteriaQuery.select((Selection<? extends Country>) root);
-            Query query = (Query<Country>) session.createQuery(criteriaQuery);
-            return query.getResultList();
-        } catch (HibernateException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    @Override
-    public List<Country> getCountryByCode(String kod) {
-        Session session = null;
-        try {
-            // Session oluşturuluyor
-            session = sessionFactory.openSession();
-            // Sorgu oluşturuluyor
-            Query query = (Query<Country>) session.createQuery(Query.GET_COUNTRY_BY_CODE, Country.class);
-            // Parametre atanıyor
-            query.setParameter("kod", kod);
-            // Sorgu sonucu veritabanından çekiliyor
-            countries = query.getResultList();
-        } catch (HibernateException e) {
-            e.printStackTrace();
-        } finally {
-            // Session kapatılıyor
-            if (session != null) {
-                session.close();
-            }
-        }
-        return countries;
-    }
-
-    @Override
-    public List<Country> getCountryByName(String name) {
-        try(Session session = HibernateUtil.getSessionFactory().openSession()) {
-            // Hibernate sorgusu hazırlanıyor
-            String hql = "FROM Country WHERE name = :name";
-            Query query = (Query<Country>) session.createQuery(hql, Country.class);
-            query.setParameter("name", name);
-
-            // Sorgu sonucunda dönen Country nesneleri, countries listesine atanıyor
-            countries = query.getResultList();
-        } catch (HibernateException e) {
-            e.printStackTrace();
-        }
-        return countries;
-    }
-
-
-    @Override
-    public List<Country> getCountryById(String kod) throws SQLException {
-        return null;
-    }
-
-    @Override
-    public List<Country> getCountryByPhoneCode(String kod) throws SQLException {
-        return null;
-    }
-
-    @Override
-    public List<Country> orderCountriesByPhoneCode(boolean ascending) {
-        // Create Hibernate session factory and session
-        SessionFactory sessionFactory = HibernateUtil.getSessionFactory();
-        Session session = sessionFactory.getCurrentSession();
-
-        // Build HQL query to retrieve countries sorted by phone code
-        String hql = Query.GET_COUNTRIES_SORTED_BY_PHONE + (ascending ? "ASC" : "DESC");
-
-        try {
-            // Begin transaction
-            session.beginTransaction();
-
-            // Execute query and get list of Country objects
-            Query query = (Query<Country>) session.createQuery(hql, Country.class);
-            List<Country> countries = query.getResultList();
-
-            // Commit transaction
-            session.getTransaction().commit();
-
-            return countries;
-        } catch (Exception e) {
-            // Roll back transaction if there is an error
-            if (session.getTransaction() != null) {
-                session.getTransaction().rollback();
-            }
-            e.printStackTrace();
-        } finally {
-            // Close session and session factory
-            session.close();
-            sessionFactory.close();
-        }
-        return null;
-    }
-
-
-    @Override
-    public List<Country> getCountriesByProperties(String currency, String phone, String continent) {
-
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            String queryString = Query.GET_COUNTRIES_BY_PROPERTIES;
-            if (currency != null) {
-                queryString += " AND currency = :currency";
-            }
-            if (phone != null) {
-                queryString += " AND phone = :phone";
-            }
-            if (continent != null) {
-                queryString += " AND continent = :continent";
-            }
-
-            Query query = (Query<Country>) session.createQuery(queryString, Country.class);
-            if (currency != null) {
-                ((org.hibernate.query.Query<?>) query).setParameter("currency", currency);
-            }
-            if (phone != null) {
-                ((org.hibernate.query.Query<?>) query).setParameter("phone", phone);
-            }
-            if (continent != null) {
-                ((org.hibernate.query.Query<?>) query).setParameter("continent", continent);
-            }
-            countries = query.getResultList();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return countries;
-    }
 
 }

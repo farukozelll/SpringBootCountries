@@ -1,74 +1,72 @@
 package SpringBoot.Countries.webApi.controllers;
 
 import SpringBoot.Countries.businness.CountryService;
-import SpringBoot.Countries.businness.CountryServiceJPA;
 import SpringBoot.Countries.entities.Country;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/countries") 
+@RequestMapping("/api")
 public class CountryController {
-    // CountryService sınıfını kullanmak için dependency injection yapılandırması
-    @Autowired
-    private CountryService countryService;
-    @Autowired
-    private CountryServiceJPA countryServicejpa;
+
+    private final CountryService countryService;
+
     @Autowired
     public CountryController(CountryService countryService) {
         this.countryService = countryService;
     }
-
-    @GetMapping("/api/one-time-insert")
-    public ResponseEntity<String> oneTimeInsert() {
-        try {
-            List<Country> allCountries = countryService.getAllCountries();
-            if (allCountries.isEmpty()) {
-                countryService.insertCountry();
-                return ResponseEntity.ok("Veriler başarıyla eklendi.");
-            }
-            else {
-                return ResponseEntity.ok("Veritabanı zaten doldurulmuş.");
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Veritabanı hatası.");
-        }
+    @GetMapping("/{id}")
+    public ResponseEntity<Country> getCountry(@PathVariable String id) {
+        Optional<Country> country = countryService.getCountry(id);
+        return country.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
-
     @GetMapping("/all")
-// Tüm ülkeleri getiren endpoint.
-    public List<Country> getAllCountries() throws SQLException{
-        return countryServicejpa.getAllCountries();
+    public List<Country> getAllCountries() {
+        return countryService.getAllCountries();
     }
-
-    @GetMapping("/code/{kod}")
-// Belirli bir ülke kodu ile ülke bilgisi getiren endpoint.
-    public List<Country> getCountryByCode(@PathVariable String kod) throws SQLException {
-        return countryService.getCountryByCode(kod);
+    @GetMapping("/name-code/{name}")
+    // Belirli bir ülke kodu ile ülke bilgisi getiren endpoint.
+    public List<Country> getCountryByName(@PathVariable String name) {
+        return countryService.getCountryByName(name);
     }
-
-    @GetMapping("/sorted/{ascending}")
+    @GetMapping("/code/{id}")
+    // Belirli bir ülke kodu ile ülke bilgisi getiren endpoint.
+    public Optional<Country> getCountryByCode(@PathVariable String id) {
+        return countryService.getCountryById(id);
+    }
+    @GetMapping("/phone-code/{phoneCode}")
+    public List<Country> getCountriesByPhoneCode(@PathVariable String phoneCode) {
+        return countryService.getCountryByPhoneCode(phoneCode);
+    }
+    @GetMapping("/sorted")
 // Telefon kodlarına göre sıralanmış ülkeleri getiren endpoint.
-// ascending parametresi sıralamanın artan veya azalan olacağını belirler.
-    public List<Country> getCountriesSortedByPhoneCode(@RequestParam(required = true, defaultValue = "false") boolean ascending) throws SQLException {
-        return countryService.orderCountriesByPhoneCode(ascending);
+// order parametresi sıralamanın artan veya azalan olacağını belirler.
+    public List<Country> getCountriesSortedByPhoneCode(@RequestParam(required = false, defaultValue = "asc") String order) {
+        return countryService.orderCountriesByPhoneCode(order);
     }
-
     @GetMapping("/filter")
-// Belirli özelliklere göre filtrelenmiş ülkeleri getiren endpoint.
-// currency, phone ve continent parametreleri filtreleme kriterlerini belirler.
+    // Belirli özelliklere göre filtrelenmiş ülkeleri getiren endpoint.
+    // currency, phone ve continent parametreleri filtreleme kriterlerini belirler.
     public List<Country> getCountriesByProperties(@RequestParam(required = false) String currency,
                                                   @RequestParam(required = false) String phone,
-                                                  @RequestParam(required = false) String continent) throws SQLException {
+                                                  @RequestParam(required = false) String continent) {
         return countryService.getCountriesByProperties(currency, phone, continent);
+    }
+    @GetMapping("/api/one-time-insert")
+    public ResponseEntity<String>oneTimeInsert(Country country) throws IOException {
+        List<Country> allCountries = countryService.getAllCountries();
+        if (allCountries.isEmpty()) {
+            countryService.insertCountry(country);
+            return ResponseEntity.ok("Veriler başarıyla eklendi.");
+        }
+        else {
+            return ResponseEntity.ok("Veritabanı zaten doldurulmuş.");
+        }
     }
 
 }
