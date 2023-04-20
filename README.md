@@ -1,4 +1,4 @@
-# Spring Boot RestApi ve Hibernate
+# Spring Boot RestApi ve Docker
 
 Bu uygulama, dünya ülkelerinin bilgilerini içeren bir veri kaynağından veri toplar ve kullanıcılara bu verileri sunar. Bu uygulama, Java dilinde yazılmıştır ve Spring Framework kullanılarak geliştirilmiştir.
 
@@ -24,7 +24,7 @@ Bu uygulama, dünya ülkelerinin bilgilerini içeren bir veri kaynağından veri
 1. Depoyu yerel bilgisayarınıza kopyalayın.
 2. MySQL veri tabanı oluşturun ve bağlantı bilgilerini `application.properties` dosyasına ekleyin.
 3. Proje dizininde, `mvn clean install` komutunu çalıştırın.
-4. Uygulamayı başlatmak için, `java -jar target/country-info-app.jar` komutunu kullanın.
+4. Uygulamayı başlatmak için, `java -jar target/country-application.jar` komutunu kullanın.
 
 ## Nasıl Kurulur ve Çalıştırılır?
 1. Projeyi indirin veya kopyalayın.
