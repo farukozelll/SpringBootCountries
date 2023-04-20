@@ -9,7 +9,8 @@ import java.util.Optional;
 public interface CountryService {
 
     Country insertCountry(Country country) throws IOException;
-    public void populateCountries();
+    public void popCountries();
+    public void addAll(List<Country> countries);
     public List<Country> getAllCountries();
     public Optional<Country> getCountry(String id);
     public Optional<Country> getCountryById(String id);

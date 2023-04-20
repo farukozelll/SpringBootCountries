@@ -15,7 +15,13 @@ import java.util.Optional;
 public class CountryController {
 
     private final CountryService countryService;
-
+//docker-compose up -d country-application
+    // docker-compose ps
+    //docker stop $(docker ps -aq)
+    //docker-compose up -d mysql
+    //docker run --name countries-application-container -p 8083:8083 -d country-application
+    //docker build -t country-application .
+    // mvn clean package
     @Autowired
     public CountryController(CountryService countryService) {
         this.countryService = countryService;
@@ -44,11 +50,12 @@ public class CountryController {
         return countryService.getCountryByPhoneCode(phoneCode);
     }
     @GetMapping("/sorted")
-// Telefon kodlarına göre sıralanmış ülkeleri getiren endpoint.
-// order parametresi sıralamanın artan veya azalan olacağını belirler.
+    // Telefon kodlarına göre sıralanmış ülkeleri getiren endpoint.
+    // order parametresi sıralamanın artan veya azalan olacağını belirler.
     public List<Country> getCountriesSortedByPhoneCode(@RequestParam(required = false, defaultValue = "asc") String order) {
         return countryService.orderCountriesByPhoneCode(order);
     }
+
     @GetMapping("/filter")
     // Belirli özelliklere göre filtrelenmiş ülkeleri getiren endpoint.
     // currency, phone ve continent parametreleri filtreleme kriterlerini belirler.
@@ -57,12 +64,12 @@ public class CountryController {
                                                   @RequestParam(required = false) String continent) {
         return countryService.getCountriesByProperties(currency, phone, continent);
     }
-    @GetMapping("/api/one-time-insert")
+    @GetMapping("/one-time-insert")
     public ResponseEntity<String>oneTimeInsert(Country country) throws IOException {
         List<Country> allCountries = countryService.getAllCountries();
         if (allCountries.isEmpty()) {
             countryService.insertCountry(country);
-            return ResponseEntity.ok("Veriler başarıyla eklendi.");
+            return ResponseEntity.ok("Ülke verileri başarıyla eklendi.");
         }
         else {
             return ResponseEntity.ok("Veritabanı zaten doldurulmuş.");
