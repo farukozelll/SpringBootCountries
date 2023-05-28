@@ -12,7 +12,7 @@ public interface CountryRepository extends JpaRepository<Country,String> {
     List<Country> findAllByOrderByPhoneAsc();
     List<Country> findAllByOrderByPhoneDesc();
 
-    List<Country> findByPhone(String phoneCode);
+    List<Country> findByPhone(String phone);
 
     List<Country> findByNameContaining(String name);
 

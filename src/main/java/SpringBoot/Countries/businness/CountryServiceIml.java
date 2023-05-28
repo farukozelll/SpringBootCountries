@@ -52,8 +52,8 @@ public class CountryServiceIml implements CountryService {
     }
 
     @Override
-    public List<Country> getCountryByPhoneCode(String phoneCode) {
-        return countryRepository.findByPhone(phoneCode);
+    public List<Country> getCountryByPhoneCode(String phone) {
+        return countryRepository.findByPhone(phone);
     }
 
     @Override
@@ -71,16 +71,26 @@ public class CountryServiceIml implements CountryService {
     public List<Country> getCountriesByProperties(String currency, String phone, String continent) {
         return countryRepository.findByCurrencyAndPhoneAndContinent(currency, phone, continent);
     }
+    @Override
+    public boolean deleteCountry(String id) {
+        Optional<Country> country = countryRepository.findById(id);
+        if (country.isPresent()) {
+            countryRepository.delete(country.get());
+            return true;
+        } else {
+            return false;
+        }
+    }
 
 
     //-------------------------------------------------------------------------------------------------
     @Override
     public Country insertCountry(Country country) {
-        return entityManager.merge(country);
+        return countryRepository.save(country);
     }
 
     @Override
-    public void popCountries() {
+    public void insertAllCountries() {
         if (countryRepository.count() == 0) {
             ObjectMapper objectMapper = new ObjectMapper();
             try {
@@ -88,7 +98,7 @@ public class CountryServiceIml implements CountryService {
                 for (Map.Entry<String, Map<String, Object>> entry : countryMaps.entrySet()) {
                     String countryCode = entry.getKey();
                     Map<String, Object> countryMap = entry.getValue();
-                    Country country = objectMapper.convertValue(countryMap, Country.class);
+                    Country country = new Country();
                     country.setId(countryCode);
                     country.setName((String) countryMap.get("name"));
                     country.setNativeName((String) countryMap.get("native"));

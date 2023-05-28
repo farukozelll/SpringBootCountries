@@ -1,23 +1,32 @@
-version: '3.9'
+
+version: "3.9"
 
 services:
-  mysql:
-    image: mysql:latest
+
+  db:
+    image: mysql
+    container_name: mysql-1
     environment:
-      MYSQL_ROOT_PASSWORD: 12345
-    ports:
-      - "3307:3306"
+      MYSQL_DATABASE: 'countries_db'
+      MYSQL_USER: 'faruk'
+      MYSQL_ROOT_PASSWORD: '12345'
+      MYSQL_PASSWORD: '12345'
     volumes:
-      - ./data:/var/lib/mysql
-  your-application:
-    build: .
+      - ./mysql/db:/var/lib/mysql
     ports:
-      - "8083:8083"
-    depends_on:
-      - mysql
+      - '3307:3306'
+
+  questionApp-be:
+    image: question-app-be
+    build: .
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/countries_db?useSSL=false&allowPublicKeyRetrieval=true&useUnicode=yes&characterEncoding=UTF-8
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/countries_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Turkey&useSSL=false&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: 12345
+    ports:
+      - '8083:8083'
+    depends_on:
+      - db
 
-
+networks:
+  questionApp-mysql:
